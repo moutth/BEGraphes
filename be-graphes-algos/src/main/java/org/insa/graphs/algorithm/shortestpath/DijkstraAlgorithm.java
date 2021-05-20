@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.insa.graphs.algorithm.AbstractSolution.Status;
 import org.insa.graphs.algorithm.utils.BinaryHeap;
+import org.insa.graphs.algorithm.utils.ElementNotFoundException;
 import org.insa.graphs.model.Arc;
 import org.insa.graphs.model.Graph;
 import org.insa.graphs.model.Node;
@@ -38,17 +39,12 @@ public class DijkstraAlgorithm extends ShortestPathAlgorithm {
         labelList.get(origin.getId()).setCost(0);
         labelHeap.insert(labelList.get(origin.getId()));
         
-        // Create the path from the array of predecessors...
-        ArrayList<Arc> arcs = new ArrayList<>();
-        
-        Label currentLabel;
-        Label min;
+        Label currentLabel = null;
         while(!labelList.get(data.getDestination().getId()).isMark()) {
-        	min = labelHeap.findMin();
-        	currentLabel = min;
-        	arcs.add(min.getPreviousArc());
+        	currentLabel = labelHeap.deleteMin();
         	currentLabel.setMark(true);
-        	
+        	notifyNodeReached(graph.getNodes().get(currentLabel.getid()));
+        	// Parcours des successeurs de la node actuelle
         	for (Arc arcSuccessor : graph.getNodes().get(currentLabel.getid()).getSuccessors()) {
         		// Small test to check allowed roads...
                 if (!data.isAllowed(arcSuccessor)) {
@@ -59,22 +55,36 @@ public class DijkstraAlgorithm extends ShortestPathAlgorithm {
                 Label successorLabel = labelList.get(successorId);
                 
                 if (!successorLabel.isMark()) {
-                	successorLabel.setCost(Math.min(successorLabel.getCost(),
-                			currentLabel.getCost()+arcSuccessor.getLength()));
-                	if (successorLabel.getCost() == currentLabel.getCost()+arcSuccessor.getLength()) {
-                		successorLabel.setPreviousArc(arcSuccessor);
-                		labelHeap.insert(successorLabel);
+                	if (successorLabel.getCost() > currentLabel.getCost()+arcSuccessor.getLength()) {
+                		try {
+                    		labelHeap.remove(successorLabel);
+                    		successorLabel.setCost(currentLabel.getCost()+arcSuccessor.getLength());
+                    		successorLabel.setPreviousArc(arcSuccessor);
+                    		labelHeap.insert(successorLabel);
+                		} catch(ElementNotFoundException e) {
+                			successorLabel.setCost(currentLabel.getCost()+arcSuccessor.getLength());
+                    		successorLabel.setPreviousArc(arcSuccessor);
+                    		labelHeap.insert(successorLabel);
+                		}
                 	}
                 }
         	}
         }
         
+        
         // The destination has been found, notify the observers.
         notifyDestinationReached(data.getDestination());
-
+        
+        // Create the path from the array of predecessors...
+        ArrayList<Arc> arcs = new ArrayList<>();
+        
+        while (currentLabel.getPreviousArc() != null) {
+        	arcs.add(currentLabel.getPreviousArc());
+        	currentLabel = labelList.get(currentLabel.getPreviousArc().getOrigin().getId());
+        }
+        
         // Reverse the path...
         Collections.reverse(arcs);
-        arcs.remove(arcs.size());
 
         // Create the final solution.
         solution = new ShortestPathSolution(data, Status.OPTIMAL, new Path(graph, arcs));
