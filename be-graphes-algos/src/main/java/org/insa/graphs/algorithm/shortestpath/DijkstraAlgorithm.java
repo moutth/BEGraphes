@@ -7,6 +7,7 @@ import java.util.List;
 import org.insa.graphs.algorithm.AbstractSolution.Status;
 import org.insa.graphs.algorithm.utils.BinaryHeap;
 import org.insa.graphs.algorithm.utils.ElementNotFoundException;
+import org.insa.graphs.algorithm.utils.EmptyPriorityQueueException;
 import org.insa.graphs.model.Arc;
 import org.insa.graphs.model.Graph;
 import org.insa.graphs.model.Node;
@@ -18,6 +19,10 @@ public class DijkstraAlgorithm extends ShortestPathAlgorithm {
         super(data);
     }
 
+    public Label addLabel(int id) {
+    	return new Label(id);
+    }
+    
     @Override
     protected ShortestPathSolution doRun() {
     	// Retrieve the graph
@@ -33,15 +38,22 @@ public class DijkstraAlgorithm extends ShortestPathAlgorithm {
         
         // Initialize a list of labels of the nodes
         for (Node currentNode : graph.getNodes()) {
-        	labelList.add(new Label(currentNode.getId()));
+        	labelList.add(addLabel(currentNode.getId()));
         }
         
         labelList.get(origin.getId()).setCost(0);
         labelHeap.insert(labelList.get(origin.getId()));
         
+        boolean notFound = true;
+        
         Label currentLabel = null;
-        while(!labelList.get(data.getDestination().getId()).isMark()) {
-        	currentLabel = labelHeap.deleteMin();
+        while(!labelList.get(data.getDestination().getId()).isMark() && notFound) {
+        	try {
+        		currentLabel = labelHeap.deleteMin();
+        	} catch (EmptyPriorityQueueException e) {
+        		notFound = false;
+        		System.out.println("caca");
+        	}
         	currentLabel.setMark(true);
         	notifyNodeReached(graph.getNodes().get(currentLabel.getid()));
         	// Parcours des successeurs de la node actuelle
@@ -55,14 +67,14 @@ public class DijkstraAlgorithm extends ShortestPathAlgorithm {
                 Label successorLabel = labelList.get(successorId);
                 
                 if (!successorLabel.isMark()) {
-                	if (successorLabel.getCost() > currentLabel.getCost()+arcSuccessor.getLength()) {
+                	if (successorLabel.getCost() > currentLabel.getCost()+data.getCost(arcSuccessor)) {
                 		try {
                     		labelHeap.remove(successorLabel);
-                    		successorLabel.setCost(currentLabel.getCost()+arcSuccessor.getLength());
+                    		successorLabel.setCost(currentLabel.getCost()+data.getCost(arcSuccessor));
                     		successorLabel.setPreviousArc(arcSuccessor);
                     		labelHeap.insert(successorLabel);
                 		} catch(ElementNotFoundException e) {
-                			successorLabel.setCost(currentLabel.getCost()+arcSuccessor.getLength());
+                			successorLabel.setCost(currentLabel.getCost()+data.getCost(arcSuccessor));
                     		successorLabel.setPreviousArc(arcSuccessor);
                     		labelHeap.insert(successorLabel);
                 		}
@@ -87,7 +99,10 @@ public class DijkstraAlgorithm extends ShortestPathAlgorithm {
         Collections.reverse(arcs);
 
         // Create the final solution.
-        solution = new ShortestPathSolution(data, Status.OPTIMAL, new Path(graph, arcs));
+        if (!notFound)
+        	solution = new ShortestPathSolution(data, Status.INFEASIBLE);
+        else
+        	solution = new ShortestPathSolution(data, Status.OPTIMAL, new Path(graph, arcs));
         
         return solution;
     }

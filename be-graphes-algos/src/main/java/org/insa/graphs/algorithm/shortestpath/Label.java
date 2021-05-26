@@ -5,7 +5,7 @@ import org.insa.graphs.model.Node;
 
 public class Label implements Comparable<Label> {
 	private final int id;
-	private float cost = Float.MAX_VALUE;
+	private double cost = Double.MAX_VALUE;
 	private boolean mark = false;
 	private Arc previousArc = null;
 	
@@ -13,7 +13,7 @@ public class Label implements Comparable<Label> {
 		this.id = id;
 	}
 	
-	public float getCost() {
+	public double getCost() {
 		return this.cost;
 	}
 	
@@ -37,15 +37,19 @@ public class Label implements Comparable<Label> {
 		return id;
 	}
 
-	public void setCost(float cost) {
-		this.cost = cost;
+	public void setCost(double d) {
+		this.cost = d;
+	}
+	
+	public double getTotalCost() {
+		return this.cost;
 	}
 	
 	public int compareTo(Label other) {
 		int returnValue;
-		if (this.cost < other.cost)
+		if (this.getTotalCost() < other.getTotalCost())
 			returnValue = -1;
-		else if (this.cost > other.cost)
+		else if (this.getTotalCost() > other.getTotalCost())
 			returnValue = 1;
 		else
 			returnValue = 0;
