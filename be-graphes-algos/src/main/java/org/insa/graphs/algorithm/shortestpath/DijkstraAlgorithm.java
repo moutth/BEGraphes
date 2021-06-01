@@ -52,7 +52,6 @@ public class DijkstraAlgorithm extends ShortestPathAlgorithm {
         		currentLabel = labelHeap.deleteMin();
         	} catch (EmptyPriorityQueueException e) {
         		notFound = false;
-        		System.out.println("caca");
         	}
         	currentLabel.setMark(true);
         	notifyNodeReached(graph.getNodes().get(currentLabel.getid()));
